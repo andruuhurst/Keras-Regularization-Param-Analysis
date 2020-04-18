@@ -107,6 +107,177 @@ for(hidden.layers.i in seq_along(hidden.layers.new)){
   )
 }
 
+###### Variable number of hidden units #######
+hidden.unit.metrics.list <- list()
+
+for(n.hidden.units in c(2, 4, 8, 16, 32, 64, 128, 256, 512, 1024)){
+  model <- keras_model_sequential() %>%
+    layer_dense(
+      input_shape=ncol(X.train.mat),
+      units = n.hidden.units,
+      activation = "sigmoid",
+      use_bias=FALSE) %>% 
+    layer_dense(1, activation = "sigmoid", use_bias=FALSE)
+  model %>%
+    compile(
+      loss = "binary_crossentropy",
+      optimizer = optimizer_adam(lr=0.01),
+      metrics = "accuracy"
+    )
+  result <- model %>%
+    fit(
+      x = X.subtrain.mat, y = y.subtrain,
+      epochs = 100,
+      validation_data=list(X.validation.mat, y.validation),
+      verbose = 2
+    )
+  unit.metrics <- do.call(data.table::data.table, result$metrics)
+  unit.metrics[, epoch := 1:.N]
+  hidden.unit.metrics.list[[length(hidden.unit.metrics.list)+1]] <- data.table::data.table(
+    n.hidden.units, unit.metrics)
+  
+}
+
+hidden.unit.metrics <- do.call(rbind, hidden.unit.metrics.list)
+
+library(ggplot2)
+(units.metrics.tall <- nc::capture_melt_single(
+  hidden.unit.metrics,
+  set="val_|",
+  metric="loss|acc"))
+units.metrics.tall[, Set := ifelse(set=="val_", "validation", "subtrain")]
+
+units.loss.tall <- units.metrics.tall[metric=="loss"]
+units.loss.min <- units.loss.tall[, .SD[
+  which.min(value)], by=.(Set, n.hidden.units)]
+
+ggplot()+
+  geom_line(aes(
+    x=epoch, y=value, color=Set),
+    data=units.loss.tall)+
+  geom_point(aes(
+    x=epoch, y=value, color=Set),
+    data=units.loss.min)+
+  theme_bw()+
+  facet_wrap("n.hidden.units")
+
+min.loss.dt.list <-list()
+uni.unit.vec <- unique(hidden.unit.metrics[, n.hidden.units])
+for( units in uni.unit.vec){
+  min.loss.dt.list[[length(min.loss.dt.list)+1]] <- hidden.unit.metrics[ n.hidden.units == units][which.min(loss)]
+}
+
+min.loss.dt <- do.call(rbind, min.loss.dt.list)
+
+min.val.loss.dt.list <-list()
+for( units in uni.unit.vec){
+  min.val.loss.dt.list[[length(min.val.loss.dt.list)+1]] <- hidden.unit.metrics[ n.hidden.units == units][which.min(val_loss)]
+}
+
+min.val.loss.dt <- do.call(rbind, min.val.loss.dt.list)
+
+min.loss.dt.list <-list()
+uni.unit.vec <- unique(hidden.unit.metrics[, n.hidden.units])
+for( units in uni.unit.vec){
+  min.loss.dt.list[[length(min.loss.dt.list)+1]] <- hidden.unit.metrics[ n.hidden.units == units][which.min(loss)]
+}
+
+min.loss.dt <- do.call(rbind, min.loss.dt.list)
+
+
+min.val.loss.dt.list <-list()
+for( units in uni.unit.vec){
+  min.val.loss.dt.list[[length(min.val.loss.dt.list)+1]] <- hidden.unit.metrics[ n.hidden.units == units][which.min(val_loss)]
+}
+
+min.val.loss.dt <- do.call(rbind, min.val.loss.dt.list)
+
+train.min.dt.list <- list()
+
+#### 2 hidden units with best epoch : 99#####
+model <- keras_model_sequential() %>%
+  layer_dense(
+    input_shape=ncol(X.train.mat),
+    units = 2,
+    activation = "sigmoid",
+    use_bias=FALSE) %>% 
+  layer_dense(1, activation = "sigmoid", use_bias=FALSE) 
+model %>%
+  compile(
+    loss = "binary_crossentropy",
+    optimizer = optimizer_adam(lr=0.01),
+    metrics = "accuracy" 
+  )
+result1 <- model %>%
+  fit(
+    x = X.subtrain.mat, y = y.subtrain,
+    epochs = 99,
+    validation_data=list(X.validation.mat, y.validation),
+    verbose = 2
+  )
+
+unit.metrics <- do.call(data.table::data.table , result1$metrics)
+unit.metrics[, epoch := 1:.N]
+train.min.dt.list[[length(train.min.dt.list)+1]] <- unit.metrics[which.min(loss)]
+
+#### 128 hidden units with best epoch : 98 #####
+model <- keras_model_sequential() %>%
+  layer_dense(
+    input_shape=ncol(X.train.mat),
+    units = 128,
+    activation = "sigmoid",
+    use_bias=FALSE) %>% 
+  layer_dense(1, activation = "sigmoid", use_bias=FALSE) 
+model %>%
+  compile(
+    loss = "binary_crossentropy",
+    optimizer = optimizer_adam(lr=0.01),
+    metrics = "accuracy" 
+  )
+result2 <- model %>%
+  fit(
+    x = X.subtrain.mat, y = y.subtrain,
+    epochs = 98,
+    validation_data=list(X.validation.mat, y.validation),
+    verbose = 2
+  )
+
+unit.metrics <- do.call(data.table::data.table , result2$metrics)
+unit.metrics[, epoch := 1:.N]
+train.min.dt.list[[length(train.min.dt.list)+1]] <- unit.metrics[which.min(loss)]
+
+#### 1024 hidden units with best epoch : 93 #####
+model <- keras_model_sequential() %>%
+  layer_dense(
+    input_shape=ncol(X.train.mat),
+    units = 1024,
+    activation = "sigmoid",
+    use_bias=FALSE) %>% 
+  layer_dense(1, activation = "sigmoid", use_bias=FALSE) #
+model %>%
+  compile(
+    loss = "binary_crossentropy",
+    optimizer = optimizer_adam(lr=0.01),
+    metrics = "accuracy" 
+  )
+result3 <- model %>%
+  fit(
+    x = X.subtrain.mat, y = y.subtrain,
+    epochs = 93,
+    validation_data=list(X.validation.mat, y.validation),
+    verbose = 2
+  )
+
+unit.metrics <- do.call(data.table::data.table , result3$metrics)
+unit.metrics[, epoch := 1:.N]
+train.min.dt.list[[length(train.min.dt.list)+1]] <- unit.metrics[which.min(loss)]
+  
+
+###### Baseline prediction ######
+y.tab <- table(y.train)
+y.baseline <- as.integer(names(y.tab[which.max(y.tab)]))
+mean(y.test == y.baseline)
+
 
 
 
