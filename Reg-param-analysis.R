@@ -271,6 +271,21 @@ result3 <- model %>%
 unit.metrics <- do.call(data.table::data.table , result3$metrics)
 unit.metrics[, epoch := 1:.N]
 train.min.dt.list[[length(train.min.dt.list)+1]] <- unit.metrics[which.min(loss)]
+
+
+ggplot()+
+  geom_line( aes( x= epoch,
+                  y= loss,
+                  color = n.hidden.units,
+                  group = n.hidden.units),
+             size=1,
+             data = hidden.unit.metrics) + 
+geom_point( aes( x= epoch,
+                 y= loss ),
+            color = "red",
+            size= 1.5,
+            min.val.loss.dt)
+  
   
 
 ###### Baseline prediction ######
